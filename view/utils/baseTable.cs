@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace utils
+namespace view
 {
     /// <summary>
     /// 表基类

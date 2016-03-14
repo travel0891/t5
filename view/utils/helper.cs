@@ -3,7 +3,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace utils
+namespace view
 {
     class helper
     {
@@ -109,7 +109,7 @@ namespace utils
 
         private helper() { }
 
-        public static helper GetInstance()
+        public static helper instance()
         {
             return h == null ? new helper() : h;
         }

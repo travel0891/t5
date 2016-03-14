@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 using System.Reflection;
 using System.Text;
 
-namespace utils
+namespace view
 {
     public class query
     {
@@ -18,17 +18,17 @@ namespace utils
 
         public IDataReader dataReader(String commandText, IDbDataParameter[] dataParameter)
         {
-            return helper.GetInstance().ExecuteReader(helper.connectionString, commandText, dataParameter, CommandType.Text);
+            return helper.instance().ExecuteReader(helper.connectionString, commandText, dataParameter, CommandType.Text);
         }
 
         public String scalarString(String commandText, IDbDataParameter[] dataParameter)
         {
-            return helper.GetInstance().ExecuteScalarToString(helper.connectionString, commandText, dataParameter, CommandType.Text);
+            return helper.instance().ExecuteScalarToString(helper.connectionString, commandText, dataParameter, CommandType.Text);
         }
 
         public Int32 scalarInt(String commandText, IDbDataParameter[] dataParameter)
         {
-            return helper.GetInstance().ExecuteScalarToInt(helper.connectionString, commandText, dataParameter, CommandType.Text);
+            return helper.instance().ExecuteScalarToInt(helper.connectionString, commandText, dataParameter, CommandType.Text);
         }
 
         #endregion
@@ -37,7 +37,7 @@ namespace utils
 
         private query() { }
 
-        public static query GetInstance()
+        public static query instance()
         {
             return q == null ? new query() : q;
         }

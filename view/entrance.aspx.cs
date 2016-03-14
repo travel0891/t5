@@ -4,14 +4,17 @@ using System.Data;
 using System.Text;
 using System.Web.UI;
 
-using utils;
-using view.model;
-
 namespace view
 {
+    using view.model;
+
     public partial class entrance : Page
     {
-        protected void Page_Load(object sender, EventArgs e) { table(); }
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            table();
+            entity("entityProvider");
+        }
 
         /// <summary>
         /// 生成表结构实体 基类 baseTable 默认目录 model\table\xxx.cs
@@ -19,18 +22,23 @@ namespace view
         private void table()
         {
             String tempClass = String.Empty;
-            Int32 tempIndex = 1;
-            StringBuilder sbHTML = new StringBuilder();
+
+            StringBuilder sbHTML = null;
             ctrl c = new ctrl();
 
             List<tableList> lsTable = c.selectTable("U");
             foreach (tableList table in lsTable)
             {
+                Int32 tempIndex = 1;
+
+                sbHTML = new StringBuilder();
                 tempClass = table.tName;
                 sbHTML.AppendLine("using System;");
                 sbHTML.AppendLine("");
                 sbHTML.AppendLine("namespace model.table");
                 sbHTML.AppendLine("{");
+                sbHTML.AppendLine("    using model.utils;");
+                sbHTML.AppendLine("");
                 sbHTML.AppendLine("    public class " + tempClass + " : baseTable");
                 sbHTML.AppendLine("    {");
 
@@ -43,7 +51,7 @@ namespace view
                         sbHTML.AppendLine("        /// " + column.cRemark + " " + column.cType + " " + column.cLength + (column.cIdentity == 1 ? "主键" : null) + " " + column.cDefault);
                         sbHTML.AppendLine("        /// </summary> ");
                     }
-                    sbHTML.AppendLine("        public " + dbString.getType(column.cType) + (column.cNULL == 1 ? "?" : null) + " " + column.cName + " { get; set; }");
+                    sbHTML.AppendLine("        public " + dbString.getCType(column.cType) + (column.cNULL == 1 ? "?" : null) + " " + column.cName + " { get; set; }");
 
                     if (lsColumn.Count > tempIndex)
                     {
@@ -53,14 +61,156 @@ namespace view
                 }
                 sbHTML.AppendLine("    }");
                 sbHTML.AppendLine("}");
-            }
 
-            classString.doFile("model\\table", tempClass, sbHTML.ToString());
+                classString.doFile("model\\table", tempClass, sbHTML.ToString());
+            }
+        }
+
+        /// <summary>
+        /// 生成基本CURD 默认目录 model\entity\xxx.cs
+        /// </summary>
+        /// <param name="instanceName">实例名称</param>
+        private void entity(String instanceName)
+        {
+            String tempClass = String.Empty;
+            Int32 instanceIndex = 1;
+            StringBuilder sbHTML = null, sbSQL = null;
+            ctrl c = new ctrl();
+
+            List<tableList> lsTable = c.selectTable("U");
+            foreach (tableList table in lsTable)
+            {
+                sbHTML = new StringBuilder();
+
+                tempClass = table.tName;
+
+                #region using
+
+                sbHTML.AppendLine("using System;");
+                sbHTML.AppendLine("using System.Collections.Generic;");
+                sbHTML.AppendLine("using System.Data;");
+                sbHTML.AppendLine("using System.Data.SqlClient;");
+                sbHTML.AppendLine("using System.Text;");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("namespace model.entity");
+                sbHTML.AppendLine("{");
+                sbHTML.AppendLine("    using model.table;");
+                sbHTML.AppendLine("    using model.utils;");
+                sbHTML.AppendLine("");
+
+                #endregion
+
+                #region begin
+
+                sbHTML.AppendLine("    public partial class " + instanceName + " ");
+                sbHTML.AppendLine("    {");
+
+                #endregion
+
+                List<columnList> lsColumn = c.selectColumn(tempClass);
+
+                #region list Object
+
+                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "()");
+                sbHTML.AppendLine("        {");
+                sbHTML.AppendLine("            List<" + tempClass + "> list" + dbString.changeChar(tempClass) + "Model = new List<" + tempClass + ">();");
+                sbHTML.AppendLine("            return list" + dbString.changeChar(tempClass) + "Model;");
+                sbHTML.AppendLine("        }");
+                sbHTML.AppendLine("");
+
+                #endregion
+
+                #region single Object
+
+                sbHTML.AppendLine("        public " + tempClass + " select" + dbString.changeChar(tempClass) + "ByCharId(String charId)");
+                sbHTML.AppendLine("        {");
+                sbHTML.AppendLine("            " + tempClass + " " + tempClass + "Model = null;");
+                sbHTML.AppendLine("            StringBuilder sbSQL = new StringBuilder();");
+                sbHTML.AppendLine("            sbSQL.Append(\" select intId, charId \");");
+                sbSQL = new StringBuilder();
+                foreach (columnList itemColum in lsColumn)
+                {
+                    sbSQL.Append("," + itemColum.cName + " ");
+                }
+                sbHTML.AppendLine("            sbSQL.Append(\" " + sbSQL.ToString() + "\");");
+                sbHTML.AppendLine("            sbSQL.Append(\" from " + tempClass + " \");");
+                sbHTML.AppendLine("            sbSQL.Append(\" where charId = @charId \");");
+                sbHTML.AppendLine("            IDbDataParameter[] parameter = { new SqlParameter(\"charId\", charId) }; ");
+                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), parameter);");
+                sbHTML.AppendLine("            if (dr.Read())");
+                sbHTML.AppendLine("            {");
+                sbHTML.AppendLine("                " + tempClass + "Model = new " + tempClass + "();");
+                sbHTML.AppendLine("                " + tempClass + "Model.intId = dr.GetInt32(0);");
+                sbHTML.AppendLine("                " + tempClass + "Model.charId = dr.GetGuid(1).ToString();");
+                Int32 drIndex = 2;
+                foreach (columnList itemColum in lsColumn)
+                {
+                    sbHTML.AppendLine("                " + tempClass + "Model." + itemColum.cName + " = dr." + dbString.getDrType(itemColum.cType) + "(" + drIndex + ")" + (itemColum.cType.ToLower() == "uniqueidentifier" ? ".ToString()" : null) + ";");
+                    drIndex++;
+                }
+                sbHTML.AppendLine("            }");
+                sbHTML.AppendLine("            dr.Close();");
+                sbHTML.AppendLine("            return " + tempClass + "Model;");
+                sbHTML.AppendLine("        }");
+                sbHTML.AppendLine("");
+
+                #endregion
+
+                #region insert update delete
+
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("        public Int32 insert" + dbString.changeChar(tempClass) + "(" + tempClass + " " + tempClass + "Model)");
+                sbHTML.AppendLine("        {");
+                sbHTML.AppendLine("            return query.instance().insert(" + tempClass + "Model);");
+                sbHTML.AppendLine("        }");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("        public Int32 update" + dbString.changeChar(tempClass) + "(" + tempClass + " " + tempClass + "Model)");
+                sbHTML.AppendLine("        {");
+                sbHTML.AppendLine("            return query.instance().update(" + tempClass + "Model);");
+                sbHTML.AppendLine("        }");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("        public Int32 delete" + dbString.changeChar(tempClass) + "(" + tempClass + " " + tempClass + "Model)");
+                sbHTML.AppendLine("        {");
+                sbHTML.AppendLine("            return query.instance().delete(" + tempClass + "Model);");
+                sbHTML.AppendLine("        }");
+
+                #endregion
+
+                #region instance
+
+                if (instanceIndex == 1)
+                {
+                    sbHTML.AppendLine("");
+                    sbHTML.AppendLine("        private static " + instanceName + " entity = null;");
+                    sbHTML.AppendLine("");
+                    sbHTML.AppendLine("        private " + instanceName + "() { }");
+                    sbHTML.AppendLine("");
+                    sbHTML.AppendLine("        public static " + instanceName + " instance()");
+                    sbHTML.AppendLine("        {");
+                    sbHTML.AppendLine("            return entity == null ? new " + instanceName + "() : entity;");
+                    sbHTML.AppendLine("        }");
+                }
+
+                #endregion
+
+                #region end
+
+                sbHTML.AppendLine("    }");
+                sbHTML.AppendLine("}");
+
+                #endregion
+
+                instanceIndex++;
+
+                classString.doFile("model\\entity", tempClass, sbHTML.ToString());
+            }
         }
     }
 
     public class ctrl
     {
+        #region ctrl
+
         /// <summary>
         /// 获取数据库中对象
         /// </summary>
@@ -77,7 +227,7 @@ namespace view
                 sbSQL.Append(" where xtype = '" + tType + "' ");
             }
 
-            IDataReader dr = query.GetInstance().dataReader(sbSQL.ToString(), null);
+            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);
             tableList model = null;
             while (dr.Read())
             {
@@ -134,7 +284,7 @@ namespace view
             sbSQL.Append(" and c.name<>'intId' and c.name<>'charId' ");
             sbSQL.Append(" order by o.name,c.column_id ");
 
-            IDataReader dr = query.GetInstance().dataReader(sbSQL.ToString(), null);
+            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);
             columnList model = null;
             while (dr.Read())
             {
@@ -154,5 +304,7 @@ namespace view
 
             return lsModel;
         }
+
+        #endregion
     }
 }
