@@ -114,6 +114,33 @@ namespace view
                 sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "()");
                 sbHTML.AppendLine("        {");
                 sbHTML.AppendLine("            List<" + tempClass + "> list" + dbString.changeChar(tempClass) + "Model = new List<" + tempClass + ">();");
+                sbHTML.AppendLine("            " + tempClass + " " + tempClass + "Model = null;");
+                sbHTML.AppendLine("            StringBuilder sbSQL = new StringBuilder();");
+                sbHTML.AppendLine("            sbSQL.Append(\" select intId, charId \");");
+                sbSQL = new StringBuilder();
+                foreach (columnList itemColum in lsColumn)
+                {
+                    sbSQL.Append("," + itemColum.cName + " ");
+                }
+                sbHTML.AppendLine("            sbSQL.Append(\" " + sbSQL.ToString() + "\");");
+                sbHTML.AppendLine("            sbSQL.Append(\" from " + tempClass + " \");");
+                // sbHTML.AppendLine("            sbSQL.Append(\" where charId = @charId \");");
+                // sbHTML.AppendLine("            IDbDataParameter[] parameter = { new SqlParameter(\"charId\", charId) }; ");
+                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);");// parameter
+                sbHTML.AppendLine("            while (dr.Read())");
+                sbHTML.AppendLine("            {");
+                sbHTML.AppendLine("                " + tempClass + "Model = new " + tempClass + "();");
+                sbHTML.AppendLine("                " + tempClass + "Model.intId = dr.GetInt32(0);");
+                sbHTML.AppendLine("                " + tempClass + "Model.charId = dr.GetGuid(1).ToString();");
+                Int32 lsIndex = 2;
+                foreach (columnList itemColum in lsColumn)
+                {
+                    sbHTML.AppendLine("                " + tempClass + "Model." + itemColum.cName + " = dr." + dbString.getDrType(itemColum.cType) + "(" + lsIndex + ")" + (itemColum.cType.ToLower() == "uniqueidentifier" ? ".ToString()" : null) + ";");
+                    lsIndex++;
+                }
+                sbHTML.AppendLine("                list" + dbString.changeChar(tempClass) + "Model.Add(" + tempClass + "Model);");
+                sbHTML.AppendLine("            }");
+                sbHTML.AppendLine("            dr.Close();");
                 sbHTML.AppendLine("            return list" + dbString.changeChar(tempClass) + "Model;");
                 sbHTML.AppendLine("        }");
                 sbHTML.AppendLine("");
@@ -158,7 +185,6 @@ namespace view
 
                 #region insert update delete
 
-                sbHTML.AppendLine("");
                 sbHTML.AppendLine("        public Int32 insert" + dbString.changeChar(tempClass) + "(" + tempClass + " " + tempClass + "Model)");
                 sbHTML.AppendLine("        {");
                 sbHTML.AppendLine("            return query.instance().insert(" + tempClass + "Model);");
