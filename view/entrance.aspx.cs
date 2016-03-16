@@ -45,12 +45,12 @@ namespace view
                 List<columnList> lsColumn = c.selectColumn(tempClass);
                 foreach (columnList column in lsColumn)
                 {
-                    if (column.cRemark.Length > 0)
-                    {
-                        sbHTML.AppendLine("        /// <summary> ");
-                        sbHTML.AppendLine("        /// " + column.cRemark + " " + column.cType + " " + column.cLength + (column.cIdentity == 1 ? "主键" : null) + " " + column.cDefault);
-                        sbHTML.AppendLine("        /// </summary> ");
-                    }
+                    // if (column.cRemark.Length > 0)
+                    // {
+                    sbHTML.AppendLine("        /// <summary> ");
+                    sbHTML.AppendLine("        /// " + column.cRemark + " " + column.cType + " " + column.cLength + (column.cIdentity == 1 ? " 主键" : null) + " " + column.cDefault + " " + column.cIndexName + " " + column.cIndexSort);
+                    sbHTML.AppendLine("        /// </summary> ");
+                    // }
                     sbHTML.AppendLine("        public " + dbString.getCType(column.cType) + (column.cNULL == 1 ? "?" : null) + " " + column.cName + " { get; set; }");
 
                     if (lsColumn.Count > tempIndex)
@@ -111,12 +111,14 @@ namespace view
 
                 #region list Object
 
-                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "()");
+                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(" + tempClass + " whereModel, Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount)");
                 sbHTML.AppendLine("        {");
-                sbHTML.AppendLine("            List<" + tempClass + "> list" + dbString.changeChar(tempClass) + "Model = new List<" + tempClass + ">();");
-                sbHTML.AppendLine("            " + tempClass + " " + tempClass + "Model = null;");
+                sbHTML.AppendLine("            String dataCountSQL = \" select count(1) from area \";");
+                sbHTML.AppendLine("");
                 sbHTML.AppendLine("            StringBuilder sbSQL = new StringBuilder();");
-                sbHTML.AppendLine("            sbSQL.Append(\" select intId, charId \");");
+                sbHTML.AppendLine("            sbSQL.Append(\" select \");");
+                sbHTML.AppendLine("            sbSQL.AppendFormat(\" {0} \", pageSize > 0 ? \" top \" + pageSize : null);");
+                sbHTML.AppendLine("            sbSQL.Append(\" intId, charId \");");
                 sbSQL = new StringBuilder();
                 foreach (columnList itemColum in lsColumn)
                 {
@@ -124,9 +126,58 @@ namespace view
                 }
                 sbHTML.AppendLine("            sbSQL.Append(\" " + sbSQL.ToString() + "\");");
                 sbHTML.AppendLine("            sbSQL.Append(\" from " + tempClass + " \");");
-                // sbHTML.AppendLine("            sbSQL.Append(\" where charId = @charId \");");
-                // sbHTML.AppendLine("            IDbDataParameter[] parameter = { new SqlParameter(\"charId\", charId) }; ");
-                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);");// parameter
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            StringBuilder whereSQL = new StringBuilder();");
+                sbHTML.AppendLine("            whereSQL.Append(\" where 1 = @where \");");
+
+                List<pkList> lsPk = c.selectPk(tempClass);
+                if (lsPk.Count > 0)
+                {
+                    sbHTML.AppendLine("            if (whereModel != null)");
+                    sbHTML.AppendLine("            {");
+                    foreach (pkList itemPk in lsPk)
+                    {
+                        sbHTML.AppendLine("                if (!String.IsNullOrEmpty(whereModel." + itemPk.key3 + "_charId))");
+                        sbHTML.AppendLine("                {");
+                        sbHTML.AppendLine("                    whereSQL.Append(\" and " + itemPk.key3 + "_charId = @" + itemPk.key3 + "_charId \");");
+                        sbHTML.AppendLine("                }");
+                    }
+                    sbHTML.AppendLine("            }");
+                }
+                sbHTML.AppendLine("");
+
+                sbHTML.AppendLine("            StringBuilder pageSQL = new StringBuilder();");
+                sbHTML.AppendLine("            pageIndex = pageIndex > 0 ? pageIndex - 1 : 0;");
+                sbHTML.AppendLine("            if (pageIndex > 0)");
+                sbHTML.AppendLine("            {");
+                sbHTML.AppendLine("                pageSQL.Append(\" and intId > \");");
+                sbHTML.AppendLine("                pageSQL.AppendFormat(\" ( select max(intId) from (select top {0} intId from area {1} order by intId ) as dataList ) \", pageIndex * pageSize, whereSQL.ToString());");
+                sbHTML.AppendLine("            }");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            StringBuilder orderSQL = new StringBuilder();");
+                sbHTML.AppendLine("            orderSQL.Append(\" order by intId \");");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            IDbDataParameter[] parameter = {");
+                sbHTML.AppendLine("                                           new SqlParameter(\"where\",\"1\"),");
+
+                foreach (pkList itemPk in lsPk)
+                {
+                    sbHTML.AppendLine("                                           new SqlParameter(\"" + itemPk.key3 + "_charId\",whereModel == null? (Object)DBNull.Value:whereModel." + itemPk.key3 + "_charId == null ? (Object)DBNull.Value : whereModel." + itemPk.key3 + "_charId),");
+                }
+
+                String tempHTML = sbHTML.ToString().Substring(0, sbHTML.ToString().LastIndexOf(','));
+                sbHTML = new StringBuilder();
+                sbHTML.Append(tempHTML);
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            };");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            List<" + tempClass + "> list" + dbString.changeChar(tempClass) + "Model = new List<" + tempClass + ">();");
+                sbHTML.AppendLine("            " + tempClass + " " + tempClass + "Model = null;");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            dataCount = query.instance().scalarInt(dataCountSQL + whereSQL.ToString(), parameter);");
+                sbHTML.AppendLine("            pageCount = (Int32)Math.Ceiling((Double)dataCount / (Double)pageSize);");
+                sbHTML.AppendLine("");
+                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString() + whereSQL.ToString() + pageSQL.ToString() + orderSQL.ToString(), parameter);");
                 sbHTML.AppendLine("            while (dr.Read())");
                 sbHTML.AppendLine("            {");
                 sbHTML.AppendLine("                " + tempClass + "Model = new " + tempClass + "();");
@@ -141,6 +192,7 @@ namespace view
                 sbHTML.AppendLine("                list" + dbString.changeChar(tempClass) + "Model.Add(" + tempClass + "Model);");
                 sbHTML.AppendLine("            }");
                 sbHTML.AppendLine("            dr.Close();");
+                sbHTML.AppendLine("");
                 sbHTML.AppendLine("            return list" + dbString.changeChar(tempClass) + "Model;");
                 sbHTML.AppendLine("        }");
                 sbHTML.AppendLine("");
@@ -250,7 +302,7 @@ namespace view
             sbSQL.Append(" select id,name,xtype from sysobjects ");
             if (!String.IsNullOrEmpty(tType))
             {
-                sbSQL.Append(" where xtype = '" + tType + "' ");
+                sbSQL.AppendFormat(" where xtype = '{0}' ", tType);
             }
 
             IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);
@@ -272,7 +324,7 @@ namespace view
         /// 获取对应表的字段
         /// </summary>
         /// <param name="tableName">表名</param>
-        /// <returns></returns>
+        /// <returns>List</returns>
         public List<columnList> selectColumn(String tableName)
         {
             List<columnList> lsModel = new List<columnList>();
@@ -287,6 +339,8 @@ namespace view
             sbSQL.Append(" ,case when c.is_nullable = 1 then N'1'else N'0' end as cNULL ");
             sbSQL.Append(" ,isnull(d.definition,N'') as cDefault ");
             sbSQL.Append(" ,isnull(pfd.value,N'') as cRemark ");
+            sbSQL.Append(",isnull(idx.IndexName,N'') as cIndexName ");
+            sbSQL.Append(",isnull(idx.Sort,N'') as cIndexSort ");
             sbSQL.Append(" from sys.columns as c ");
             sbSQL.Append(" inner join sys.objects as o on c.object_id = o.object_id and (o.type = 'U' or o.type = 'V') and o.is_ms_shipped = 0 ");
             sbSQL.Append(" inner join sys.types as t on c.user_type_id = t.user_type_id ");
@@ -306,7 +360,7 @@ namespace view
             sbSQL.Append(" group by object_id,Column_id ) as idxcuq ");
             sbSQL.Append(" on idxc.object_id = idxcuq.object_id and idxc.Column_id = idxcuq.Column_id and idxc.index_id = idxcuq.index_id ) as idx ");
             sbSQL.Append(" on c.object_id = idx.object_id and c.column_id = idx.column_id   ");
-            sbSQL.Append(" where o.name=N'" + tableName + "' ");
+            sbSQL.AppendFormat(" where o.name=N'{0}' ", tableName);
             sbSQL.Append(" and c.name<>'intId' and c.name<>'charId' ");
             sbSQL.Append(" order by o.name,c.column_id ");
 
@@ -317,13 +371,50 @@ namespace view
                 model = new columnList();
                 model.cId = Convert.ToInt32(dr["cId"]);
                 model.cName = dr["cName"].ToString();
-                model.cType = dr["cType"].ToString();
+                model.cType = dr["cType"].ToString().ToUpper();
                 model.cLength = Convert.ToInt32(dr["cLength"]);
                 model.cIdentity = Convert.ToInt16(dr["cIdentity"]);
                 model.cPK = Convert.ToInt16(dr["cPK"]);
                 model.cNULL = Convert.ToInt16(dr["cNULL"]);
                 model.cDefault = dr["cDefault"].ToString();
                 model.cRemark = dr["cRemark"].ToString();
+                model.cIndexName = dr["cIndexName"].ToString().ToUpper();
+                model.cIndexSort = dr["cIndexSort"].ToString().ToUpper();
+
+                lsModel.Add(model);
+            }
+            dr.Close();
+
+            return lsModel;
+        }
+
+        /// <summary>
+        /// 获取表主外键关系
+        /// </summary>
+        /// <param name="tableName">表名</param>
+        /// <returns>List</returns>
+        public List<pkList> selectPk(String tableName)
+        {
+            List<pkList> lsModel = new List<pkList>();
+            StringBuilder sbSQL = new StringBuilder();
+
+            sbSQL.Append(" select obj1.name as key1, obj2.name as key2, obj3.name as key3 ");
+            sbSQL.Append(" from sysforeignkeys as fk ");
+            sbSQL.Append(" inner join sysobjects as obj1 on fk.constid = obj1.id ");
+            sbSQL.Append(" inner join sysobjects as obj2 on fk.fkeyid = obj2.id ");
+            sbSQL.Append(" inner join sysobjects as obj3 on fk.rkeyid = obj3.id ");
+            sbSQL.AppendFormat(" where obj2.name = '{0}' ", tableName);
+            sbSQL.AppendFormat(" order by {0} desc ", "constid");
+
+            IDataReader dr = query.instance().dataReader(sbSQL.ToString(), null);
+            pkList model = null;
+            while (dr.Read())
+            {
+                model = new pkList();
+                model.key1 = dr["key1"].ToString().ToUpper();
+                model.key2 = dr["key2"].ToString();
+                model.key3 = dr["key3"].ToString();
+
                 lsModel.Add(model);
             }
             dr.Close();

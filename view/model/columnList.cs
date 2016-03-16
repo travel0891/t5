@@ -48,5 +48,8 @@ namespace view.model
         /// 备注
         /// </summary>
         public String cRemark { get; set; }
+
+        public String cIndexName { get; set; }
+        public String cIndexSort { get; set; }
     }
 }
