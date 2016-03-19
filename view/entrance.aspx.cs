@@ -113,7 +113,7 @@ namespace view
 
                 sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(" + tempClass + " whereModel, Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount)");
                 sbHTML.AppendLine("        {");
-                sbHTML.AppendLine("            String dataCountSQL = \" select count(1) from area \";");
+                sbHTML.AppendLine("            String dataCountSQL = \" select count(1) from " + tempClass + " \";");
                 sbHTML.AppendLine("");
                 sbHTML.AppendLine("            StringBuilder sbSQL = new StringBuilder();");
                 sbHTML.AppendLine("            sbSQL.Append(\" select \");");
