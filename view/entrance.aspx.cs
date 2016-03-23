@@ -48,10 +48,10 @@ namespace view
                     // if (column.cRemark.Length > 0)
                     // {
                     sbHTML.AppendLine("        /// <summary> ");
-                    sbHTML.AppendLine("        /// " + column.cRemark + " " + column.cType + " " + column.cLength + (column.cIdentity == 1 ? " 主键" : null) + " " + column.cDefault + " " + column.cIndexName + " " + column.cIndexSort);
+                    sbHTML.AppendLine("        /// " + column.cRemark + " " + column.cType + " " + column.cLength + (column.cIdentity == 1 ? " 主键" : null) + " " + column.cDefault + " " + column.cIndexName + " " + column.cIndexSort + " " + (column.cNULL == 1 ? "允许NULL" : null));
                     sbHTML.AppendLine("        /// </summary> ");
                     // }
-                    sbHTML.AppendLine("        public " + dbString.getCType(column.cType) + (column.cNULL == 1 ? "?" : null) + " " + column.cName + " { get; set; }");
+                    sbHTML.AppendLine("        public " + dbString.getCType(column.cType) + ((column.cNULL == 1 || column.cType == "DATETIME") && dbString.getCType(column.cType) != "String" ? "?" : null) + " " + column.cName + " { get; set; }");
 
                     if (lsColumn.Count > tempIndex)
                     {
