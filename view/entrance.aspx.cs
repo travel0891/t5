@@ -111,7 +111,7 @@ namespace view
 
                 #region list Object
 
-                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(" + tempClass + " whereModel, Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount)");
+                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(" + tempClass + " whereModel, Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount, String orderString, params Object[] param)");
                 sbHTML.AppendLine("        {");
                 sbHTML.AppendLine("            String dataCountSQL = \" select count(1) from " + tempClass + " \";");
                 sbHTML.AppendLine("");
@@ -127,57 +127,27 @@ namespace view
                 sbHTML.AppendLine("            sbSQL.Append(\" " + sbSQL.ToString() + "\");");
                 sbHTML.AppendLine("            sbSQL.Append(\" from " + tempClass + " \");");
                 sbHTML.AppendLine("");
-                sbHTML.AppendLine("            StringBuilder whereSQL = new StringBuilder();");
-                sbHTML.AppendLine("            whereSQL.Append(\" where 1 = @where \");");
-
-                List<pkList> lsPk = c.selectPk(tempClass);
-                if (lsPk.Count > 0)
-                {
-                    sbHTML.AppendLine("            if (whereModel != null)");
-                    sbHTML.AppendLine("            {");
-                    foreach (pkList itemPk in lsPk)
-                    {
-                        sbHTML.AppendLine("                if (!String.IsNullOrEmpty(whereModel." + itemPk.key3 + "_charId))");
-                        sbHTML.AppendLine("                {");
-                        sbHTML.AppendLine("                    whereSQL.Append(\" and " + itemPk.key3 + "_charId = @" + itemPk.key3 + "_charId \");");
-                        sbHTML.AppendLine("                }");
-                    }
-                    sbHTML.AppendLine("            }");
-                }
+                sbHTML.AppendLine("            String whereSQL = String.Empty;");
+                sbHTML.AppendLine("            IDbDataParameter[] parameter = query.instance().builderParameter(out whereSQL, param);");
                 sbHTML.AppendLine("");
-
                 sbHTML.AppendLine("            StringBuilder pageSQL = new StringBuilder();");
                 sbHTML.AppendLine("            pageIndex = pageIndex > 0 ? pageIndex - 1 : 0;");
                 sbHTML.AppendLine("            if (pageIndex > 0)");
                 sbHTML.AppendLine("            {");
                 sbHTML.AppendLine("                pageSQL.Append(\" and intId > \");");
-                sbHTML.AppendLine("                pageSQL.AppendFormat(\" ( select max(intId) from (select top {0} intId from area {1} order by intId ) as dataList ) \", pageIndex * pageSize, whereSQL.ToString());");
+                sbHTML.AppendLine("                pageSQL.AppendFormat(\" ( select max(intId) from (select top {0} intId from area {1} order by intId ) as dataList ) \", pageIndex * pageSize, whereSQL);");
                 sbHTML.AppendLine("            }");
                 sbHTML.AppendLine("");
                 sbHTML.AppendLine("            StringBuilder orderSQL = new StringBuilder();");
-                sbHTML.AppendLine("            orderSQL.Append(\" order by intId \");");
-                sbHTML.AppendLine("");
-                sbHTML.AppendLine("            IDbDataParameter[] parameter = {");
-                sbHTML.AppendLine("                                           new SqlParameter(\"where\",\"1\"),");
-
-                foreach (pkList itemPk in lsPk)
-                {
-                    sbHTML.AppendLine("                                           new SqlParameter(\"" + itemPk.key3 + "_charId\",whereModel == null? (Object)DBNull.Value:whereModel." + itemPk.key3 + "_charId == null ? (Object)DBNull.Value : whereModel." + itemPk.key3 + "_charId),");
-                }
-
-                String tempHTML = sbHTML.ToString().Substring(0, sbHTML.ToString().LastIndexOf(','));
-                sbHTML = new StringBuilder();
-                sbHTML.Append(tempHTML);
-                sbHTML.AppendLine("");
-                sbHTML.AppendLine("            };");
+                sbHTML.AppendLine("            orderSQL.AppendFormat(\" order by {0} \", String.IsNullOrEmpty(orderString) ? \"intId asc\" : orderString);");
                 sbHTML.AppendLine("");
                 sbHTML.AppendLine("            List<" + tempClass + "> list" + dbString.changeChar(tempClass) + "Model = new List<" + tempClass + ">();");
                 sbHTML.AppendLine("            " + tempClass + " " + tempClass + "Model = null;");
                 sbHTML.AppendLine("");
-                sbHTML.AppendLine("            dataCount = query.instance().scalarInt(dataCountSQL + whereSQL.ToString(), parameter);");
+                sbHTML.AppendLine("            dataCount = query.instance().scalarInt(dataCountSQL + whereSQL, parameter);");
                 sbHTML.AppendLine("            pageCount = (Int32)Math.Ceiling((Double)dataCount / (Double)pageSize);");
                 sbHTML.AppendLine("");
-                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString() + whereSQL.ToString() + pageSQL.ToString() + orderSQL.ToString(), parameter);");
+                sbHTML.AppendLine("            IDataReader dr = query.instance().dataReader(sbSQL.ToString() + whereSQL + pageSQL.ToString() + orderSQL.ToString(), parameter);");
                 sbHTML.AppendLine("            while (dr.Read())");
                 sbHTML.AppendLine("            {");
                 sbHTML.AppendLine("                " + tempClass + "Model = new " + tempClass + "();");
