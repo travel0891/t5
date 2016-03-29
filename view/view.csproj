@@ -56,6 +56,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="classList\model\utils\baseTable.cs" />
+    <Compile Include="classList\model\utils\helper.cs" />
+    <Compile Include="classList\model\utils\query.cs" />
     <Compile Include="entrance.aspx.cs">
       <DependentUpon>entrance.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
