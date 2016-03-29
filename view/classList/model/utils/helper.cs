@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 
 namespace model.utils
 {
-    public class helper
+    internal class helper
     {
         #region setParameter
 
@@ -171,6 +171,8 @@ namespace model.utils
         #endregion
 
         private static helper h = null;
+        
+        private helper() { }
 
         public static helper instance()
         {

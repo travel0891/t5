@@ -12,8 +12,17 @@ namespace view
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            table();
-            entity("entityProvider");
+            try
+            {
+                table();
+                entity("entityProvider");
+                Response.Write("true");
+            }
+            catch (Exception exception)
+            {
+                Response.Write(exception.Message);
+            }
+            Response.End();
         }
 
         /// <summary>

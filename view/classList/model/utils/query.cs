@@ -7,7 +7,7 @@ using System.Text;
 
 namespace model.utils
 {
-    public class query
+    internal class query
     {
         private static readonly String IDENTITY1 = "intId", IDENTITY2 = "charId";
 
@@ -271,6 +271,8 @@ namespace model.utils
         #endregion
 
         private static query q = null;
+
+        private query() { }
 
         public static query instance()
         {
