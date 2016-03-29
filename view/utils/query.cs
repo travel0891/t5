@@ -1,20 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
-using System.Reflection;
-using System.Text;
 
 namespace view
 {
     public class query
     {
         #region method
-
-        private static readonly String
-            IDENTITY1 = "intId"
-            , IDENTITY2 = "charId"
-            , AUTOFIEID = "createTime";
 
         public IDataReader dataReader(String commandText, IDbDataParameter[] dataParameter)
         {
