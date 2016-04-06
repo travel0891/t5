@@ -120,7 +120,7 @@ namespace view
 
                 #region list Object
 
-                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(" + tempClass + " whereModel, Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount, String orderString, params Object[] param)");
+                sbHTML.AppendLine("        public List<" + tempClass + "> select" + dbString.changeChar(tempClass) + "(Int32 pageSize, Int32 pageIndex, out Int32 dataCount, out Int32 pageCount, String orderString, params Object[] param)");
                 sbHTML.AppendLine("        {");
                 sbHTML.AppendLine("            String dataCountSQL = \" select count(1) from " + tempClass + " \";");
                 sbHTML.AppendLine("");
